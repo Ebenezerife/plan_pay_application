@@ -33,7 +33,7 @@ class WeeklyPlan {
     String? accountName,
     String? bank,
     double? weeklyPayment,
-    String? preferredDay,
+    String? selectedPayDay,
   }) {
     return WeeklyPlan(
       id: id ?? this.id,
@@ -44,7 +44,7 @@ class WeeklyPlan {
       accountName: accountName ?? this.accountName,
       bank: bank ?? this.bank,
       weeklyPayment: weeklyPayment ?? this.weeklyPayment,
-      paymentDay: preferredDay ?? paymentDay,
+      paymentDay: selectedPayDay ?? paymentDay,
     );
   }
 

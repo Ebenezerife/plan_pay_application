@@ -13,7 +13,7 @@ class WeeklyViewModel extends GetxController {
   var bankNameController = TextEditingController();
   var weeklyPayment = 0.0.obs;
   // var paymentDay = ''.obs;
-  var payDay = [
+  var paymentDay = [
     'Monday',
     'Tuesday',
     'Wednesday',

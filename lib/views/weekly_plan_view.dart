@@ -79,7 +79,7 @@ class WeeklyPlanView extends StatelessWidget {
               Obx(
                 () => DropdownButton(
                   value: _weeklyViewModel.selectedPayDay.value,
-                  items: _weeklyViewModel.payDay.map((day) {
+                  items: _weeklyViewModel.paymentDay.map((day) {
                     return DropdownMenuItem(value: day, child: Text(day));
                   }).toList(),
                   onChanged: (value) {

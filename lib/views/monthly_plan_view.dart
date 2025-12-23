@@ -80,22 +80,36 @@ class MonthlyPlanView extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 20),
+
               Obx(
-                () => Text(
-                  'Preferred Date To Be Receiving Your Monthly Pay: ${_monthlyViewModel.preferredDate.value}',
+                () => DropdownButton(
+                  value: _monthlyViewModel.selectedPayDate.value,
+                  items: _monthlyViewModel.preferredDate.map((day) {
+                    return DropdownMenuItem(value: day, child: Text(day));
+                  }).toList(),
+                  onChanged: (value) {
+                    _monthlyViewModel.selectedPayDate.value =
+                        value!; // if you did not add =value!, the number of days won't update when you change it e.g, it was monday before, if you click tuesday, it will still display monday
+                  },
                 ),
               ),
-              ElevatedButton(
-                onPressed: () {
-                  _monthlyViewModel.showDatePickerDialog();
-                },
-                child: Text('Select Preferred Date'),
-              ),
+              // Obx(
+              //   () => Text(
+              //     'Preferred Date To Be Receiving Your Monthly Pay: ${_monthlyViewModel.preferredDate.value}',
+              //   ),
+              // ),
+              // ElevatedButton(
+              //   onPressed: () {
+              //     _monthlyViewModel.showDatePickerDialog();
+              //   },
+              //   child: Text('Select Preferred Date'),
+              // ),
               SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
                   _monthlyViewModel.createMonthlyPlan();
-                  Get.back();
+                  _monthlyViewModel.onCreatePlanPressed();
+                  // Get.back(); // this was the initial thing, but the problem is the values were not resetting
                 },
                 child: Text('Create Plan'),
               ),
