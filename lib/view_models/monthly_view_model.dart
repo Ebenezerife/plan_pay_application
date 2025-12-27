@@ -39,11 +39,6 @@ class MonthlyViewModel extends GetxController {
     '23',
     '24',
     '25',
-    '26',
-    '27',
-    '28',
-    '30',
-    '31',
   ].obs; // new
   var selectedPayDate = '1'.obs; // new
   void onCreatePlanPressed() {

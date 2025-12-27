@@ -10,7 +10,17 @@ class Home extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Home Page')),
+      appBar: AppBar(
+        title: Text(
+          'Welcome To Plan Pay',
+          style: TextStyle(
+            fontSize: MediaQuery.of(context).size.width * 0.05,
+            color: Colors.green,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.amberAccent,
+      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

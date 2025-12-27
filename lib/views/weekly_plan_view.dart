@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:plan_pay_application/view_models/weekly_view_model.dart';
 
@@ -9,7 +10,17 @@ class WeeklyPlanView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Weekly Plan View')),
+      appBar: AppBar(
+        title: Text(
+          'CREATE WEEkLY PLAN',
+          style: TextStyle(
+            fontSize: MediaQuery.of(context).size.width * 0.05,
+            color: Colors.green,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.amberAccent,
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: EdgeInsetsGeometry.all(20.0),
@@ -25,6 +36,8 @@ class WeeklyPlanView extends StatelessWidget {
 
               SizedBox(height: 20),
               TextField(
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 controller: _weeklyViewModel.amountToSpreadController,
                 decoration: InputDecoration(
                   labelText: 'Amount To Spread',
@@ -36,6 +49,8 @@ class WeeklyPlanView extends StatelessWidget {
               ),
               SizedBox(height: 20),
               TextField(
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 controller: _weeklyViewModel.numberOfWeeksController,
                 decoration: InputDecoration(
                   labelText: 'Number Of Weeks',
@@ -53,6 +68,8 @@ class WeeklyPlanView extends StatelessWidget {
               ),
               SizedBox(height: 20),
               TextField(
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 controller: _weeklyViewModel.accountNumberController,
                 decoration: InputDecoration(
                   labelText: 'Your Preferred Account Number',

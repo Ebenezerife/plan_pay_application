@@ -10,7 +10,17 @@ class MonthlyPlanView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Create Monthly Plan')),
+      appBar: AppBar(
+        title: Text(
+          'CREATE MONTHLY PLAN',
+          style: TextStyle(
+            fontSize: MediaQuery.of(context).size.width * 0.05,
+            color: Colors.green,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.amberAccent,
+      ),
 
       body: SingleChildScrollView(
         child: Padding(
@@ -40,6 +50,8 @@ class MonthlyPlanView extends StatelessWidget {
               ),
               SizedBox(height: 20),
               TextField(
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 controller: _monthlyViewModel.numberOfMonthsController,
                 decoration: InputDecoration(
                   labelText: 'Number Of Months',
@@ -57,6 +69,8 @@ class MonthlyPlanView extends StatelessWidget {
               ),
               SizedBox(height: 20),
               TextField(
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 controller: _monthlyViewModel.accountNumberController,
                 decoration: InputDecoration(
                   labelText: 'Your Preferred Account Number',
