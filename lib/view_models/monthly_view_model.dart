@@ -177,6 +177,9 @@ class MonthlyViewModel extends GetxController {
     monthlyPayment.value = 0.0;
     selectedDay.value = '1';
 
-    _updateAllowedMonths();
+    _updateAllowedMonths(); // recompute allowed months
+    if (allowedMonths.isNotEmpty) {
+      selectedMonth.value = allowedMonths.first; // reset Start Month
+    }
   }
 }
