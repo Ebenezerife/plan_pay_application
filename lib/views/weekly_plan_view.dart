@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+
+import 'package:plan_pay_application/utilities/currency_formatter.dart';
 import 'package:plan_pay_application/view_models/weekly_view_model.dart';
 
 class WeeklyPlanView extends StatelessWidget {
-  final WeeklyViewModel _weeklyViewModel = Get.put(WeeklyViewModel());
   WeeklyPlanView({super.key});
+
+  final WeeklyViewModel _weeklyViewModel = Get.put(WeeklyViewModel());
+  final NumberFormat nairaFormat = NumberFormat('#,##0', 'en_NG');
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'CREATE WEEkLY PLAN',
+          'CREATE WEEKLY PLAN',
           style: TextStyle(
             fontSize: MediaQuery.of(context).size.width * 0.05,
             color: Colors.green,
@@ -23,122 +28,141 @@ class WeeklyPlanView extends StatelessWidget {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsetsGeometry.all(20.0),
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             children: [
+              // Plan Title
               TextField(
                 controller: _weeklyViewModel.planTitleController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Plan Title',
                   border: OutlineInputBorder(),
                 ),
               ),
+              const SizedBox(height: 20),
 
-              SizedBox(height: 20),
+              // Amount To Spread
               TextField(
+                controller: _weeklyViewModel.amountToSpreadController,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                controller: _weeklyViewModel.amountToSpreadController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Amount To Spread',
                   border: OutlineInputBorder(),
                 ),
                 onChanged: (value) {
-                  _weeklyViewModel.calculateWeeklyPayment();
+                  final numericValue = value.replaceAll(',', '');
+
+                  if (numericValue.isEmpty) {
+                    _weeklyViewModel.amountToSpreadController.clear();
+                    return;
+                  }
+
+                  final formatted =
+                      nairaFormat.format(int.parse(numericValue));
+
+                  _weeklyViewModel.amountToSpreadController.value =
+                      TextEditingValue(
+                    text: formatted,
+                    selection:
+                        TextSelection.collapsed(offset: formatted.length),
+                  );
                 },
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
+
+              // Number of Weeks
               TextField(
+                controller: _weeklyViewModel.numberOfWeeksController,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                controller: _weeklyViewModel.numberOfWeeksController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Number Of Weeks',
                   border: OutlineInputBorder(),
                 ),
-                onChanged: (value) {
-                  _weeklyViewModel.calculateWeeklyPayment();
-                },
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
+
+              // Weekly Payment Preview
               Obx(
                 () => Text(
-                  'Weekly Payment: ${_weeklyViewModel.weeklyPayment.value}',
+                  'Weekly Payment: ${CurrencyFormatter.format(_weeklyViewModel.weeklyPayment.value)}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
+
+              // Account Number
               TextField(
+                controller: _weeklyViewModel.accountNumberController,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                controller: _weeklyViewModel.accountNumberController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Your Preferred Account Number',
                   border: OutlineInputBorder(),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
+
+              // Account Name
               TextField(
                 controller: _weeklyViewModel.accountNameController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Account Name',
                   border: OutlineInputBorder(),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
+
+              // Bank Name
               TextField(
                 controller: _weeklyViewModel.bankNameController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Bank Name',
                   border: OutlineInputBorder(),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
+
+              // Preferred Payment Day
               Obx(
-                () => DropdownButton(
-                  value: _weeklyViewModel.selectedPayDay.value,
-                  items: _weeklyViewModel.paymentDay.map((day) {
-                    return DropdownMenuItem(value: day, child: Text(day));
-                  }).toList(),
+                () => DropdownButtonFormField<String>(
+                  value: _weeklyViewModel.selectedDay.value,
+                  decoration: const InputDecoration(
+                    labelText: 'Preferred Payment Day',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: _weeklyViewModel.allowedDays
+                      .map(
+                        (day) => DropdownMenuItem(
+                          value: day,
+                          child: Text(day),
+                        ),
+                      )
+                      .toList(),
                   onChanged: (value) {
-                    _weeklyViewModel.selectedPayDay.value =
-                        value!; // if you did not add =value!, the number of days won't update when you change it e.g, it was monday before, if you click tuesday, it will still display monday
+                    if (value != null) {
+                      _weeklyViewModel.selectedDay.value = value;
+                    }
                   },
                 ),
               ),
-              // Obx(
-              //   () => DropdownButton(
-              //     value: _weeklyViewModel.paymentDay.value,
-              //     items: [
-              //       DropdownMenuItem(value: 'Monday', child: Text('Monday')),
-              //       DropdownMenuItem(value: 'Tuesday', child: Text('Tuesday')),
-              //       DropdownMenuItem(
-              //         value: 'Wednesday',
-              //         child: Text('Wednesday'),
-              //       ),
-              //       DropdownMenuItem(
-              //         value: 'Thursday',
-              //         child: Text('Thursday'),
-              //       ),
-              //       DropdownMenuItem(value: 'Friday', child: Text('Friday')),
-              //       DropdownMenuItem(
-              //         value: 'Saturday',
-              //         child: Text('Saturday'),
-              //       ),
-              //       DropdownMenuItem(value: 'Sunday', child: Text('Sunday')),
-              //     ],
-              //     onChanged: (value) {
-              //       _weeklyViewModel.selectedPaymentDay(value!);
-              //     },
-              //   ),
-              // ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  _weeklyViewModel.createWeeklyPlan();
-                  // Get.back(); // commented this line to test onCreatePlanClicked navigation to home
-                  _weeklyViewModel.onCreatePlanClicked();
-                },
-                child: Text('Create Weekly Plan'),
+              const SizedBox(height: 30),
+
+              // Create Plan Button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _weeklyViewModel.createWeeklyPlan,
+                  child: const Text(
+                    'Create Weekly Plan',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
               ),
             ],
           ),

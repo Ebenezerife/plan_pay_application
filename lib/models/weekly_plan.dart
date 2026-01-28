@@ -1,6 +1,3 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
-import 'dart:convert';
-
 class WeeklyPlan {
   final String id;
   final String planTitle;
@@ -10,8 +7,9 @@ class WeeklyPlan {
   final String accountName;
   final String bank;
   final double weeklyPayment;
-  final String
-  paymentDay; // take note, if there is any issue with paymentDay and payDay clashes, consider chnaging here to payDay as we have it in the weekly controller
+  final String paymentDay; // Monday-Sunday
+  final List<DateTime> paymentDates;
+
   WeeklyPlan({
     required this.id,
     required this.planTitle,
@@ -22,95 +20,43 @@ class WeeklyPlan {
     required this.bank,
     required this.weeklyPayment,
     required this.paymentDay,
+    required this.paymentDates,
   });
 
-  WeeklyPlan copyWith({
-    String? id,
-    String? planTitle,
-    double? amountToSpread,
-    int? numberOfWeeks,
-    String? accountNumber,
-    String? accountName,
-    String? bank,
-    double? weeklyPayment,
-    String? selectedPayDay,
-  }) {
-    return WeeklyPlan(
-      id: id ?? this.id,
-      planTitle: planTitle ?? this.planTitle,
-      amountToSpread: amountToSpread ?? this.amountToSpread,
-      numberOfWeeks: numberOfWeeks ?? this.numberOfWeeks,
-      accountNumber: accountNumber ?? this.accountNumber,
-      accountName: accountName ?? this.accountName,
-      bank: bank ?? this.bank,
-      weeklyPayment: weeklyPayment ?? this.weeklyPayment,
-      paymentDay: selectedPayDay ?? paymentDay,
+  DateTime? nextPayment() {
+    final now = DateTime.now();
+    if (paymentDates.isEmpty) return null;
+    return paymentDates.firstWhere(
+      (d) => !d.isBefore(now),
+      orElse: () => paymentDates.last,
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return <String, dynamic>{
-      'id': id,
-      'planTitle': planTitle,
-      'amountToSpread': amountToSpread,
-      'numberOfWeeks': numberOfWeeks,
-      'accountNumber': accountNumber,
-      'accountName': accountName,
-      'bank': bank,
-      'weeklyPayment': weeklyPayment,
-      'preferredDay': paymentDay,
-    };
-  }
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'planTitle': planTitle,
+    'amountToSpread': amountToSpread,
+    'numberOfWeeks': numberOfWeeks,
+    'accountNumber': accountNumber,
+    'accountName': accountName,
+    'bank': bank,
+    'weeklyPayment': weeklyPayment,
+    'paymentDay': paymentDay,
+    'paymentDates': paymentDates.map((d) => d.toIso8601String()).toList(),
+  };
 
-  factory WeeklyPlan.fromMap(Map<String, dynamic> map) {
-    return WeeklyPlan(
-      id: map['id'] as String,
-      planTitle: map['planTitle'] as String,
-      amountToSpread: map['amountToSpread'] as double,
-      numberOfWeeks: map['numberOfWeeks'] as int,
-      accountNumber: map['accountNumber'] as String,
-      accountName: map['accountName'] as String,
-      bank: map['bank'] as String,
-      weeklyPayment: map['weeklyPayment'] as double,
-      paymentDay: map['preferredDay'] as String,
-    );
-  }
-
-  String toJson() => json.encode(toMap());
-
-  factory WeeklyPlan.fromJson(String source) =>
-      WeeklyPlan.fromMap(json.decode(source) as Map<String, dynamic>);
-
-  @override
-  String toString() {
-    return 'WeeklyPlan(id: $id, planTitle: $planTitle, amountToSpread: $amountToSpread, numberOfWeeks: $numberOfWeeks, accountNumber: $accountNumber, accountName: $accountName, bank: $bank, weeklyPayment: $weeklyPayment, preferredDay: $paymentDay)';
-  }
-
-  @override
-  bool operator ==(covariant WeeklyPlan other) {
-    if (identical(this, other)) return true;
-
-    return other.id == id &&
-        other.planTitle == planTitle &&
-        other.amountToSpread == amountToSpread &&
-        other.numberOfWeeks == numberOfWeeks &&
-        other.accountNumber == accountNumber &&
-        other.accountName == accountName &&
-        other.bank == bank &&
-        other.weeklyPayment == weeklyPayment &&
-        other.paymentDay == paymentDay;
-  }
-
-  @override
-  int get hashCode {
-    return id.hashCode ^
-        planTitle.hashCode ^
-        amountToSpread.hashCode ^
-        numberOfWeeks.hashCode ^
-        accountNumber.hashCode ^
-        accountName.hashCode ^
-        bank.hashCode ^
-        weeklyPayment.hashCode ^
-        paymentDay.hashCode;
-  }
+  factory WeeklyPlan.fromMap(Map<String, dynamic> map) => WeeklyPlan(
+    id: map['id'],
+    planTitle: map['planTitle'],
+    amountToSpread: map['amountToSpread'],
+    numberOfWeeks: map['numberOfWeeks'],
+    accountNumber: map['accountNumber'],
+    accountName: map['accountName'],
+    bank: map['bank'],
+    weeklyPayment: map['weeklyPayment'],
+    paymentDay: map['paymentDay'],
+    paymentDates: List<String>.from(
+      map['paymentDates'],
+    ).map((s) => DateTime.parse(s)).toList(),
+  );
 }
