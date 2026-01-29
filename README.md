@@ -15,17 +15,28 @@ For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
 
+// THIS REMINDS CHATGPT OF WHERE WE STOPPED
+Project: Flutter Plan Pay App
 
-Perfect! To troubleshoot your TransactionHistory UI error thoroughly, I need to see the code that’s directly involved with the crash.
+Progress so far:
+- We have **MonthlyPlanView** and **WeeklyPlanView**.
+- **Monthly plan**:
+  - Amount input is now **comma-safe** (e.g., 5,000 works correctly).
+  - Monthly payment calculation works correctly.
+  - Start month dropdown resets after creating a plan.
+  - Uses GetX for state management.
+- **Weekly plan**:
+  - Fully working with weekly payment calculation.
+  - Amount and number of weeks inputs work correctly.
+- Wallet checks implemented for both weekly and monthly plans.
+- Clear form functionality is implemented.
 
-Which of these should you provide:
+Files involved:
+- `monthly_view_model.dart`
+- `monthly_plan_view.dart`
+- `weekly_view_model.dart`
+- `weekly_plan_view.dart`
+- `wallet_view_model.dart`
 
-The full TransactionHistory widget code (if you haven’t updated it yet).
-
-Your MonthlyPlan and WeeklyPlan model classes, including the paymentDates field.
-
-Your MonthlyViewModel and WeeklyViewModel, showing how you generate and store paymentDates.
-
-Any UI code that calls TransactionHistory or uses the plans list.
-
-Which one do you want to start with?
+Next tasks / focus areas:
+- [Your next task here, e.g., "Add edit/delete plan feature", "Improve UI", "Add TransactionHistory"]

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-
 import 'package:plan_pay_application/utilities/currency_formatter.dart';
 import 'package:plan_pay_application/view_models/weekly_view_model.dart';
+import 'package:plan_pay_application/widgets/bank_picker_sheet.dart';
 
 class WeeklyPlanView extends StatelessWidget {
   WeeklyPlanView({super.key});
@@ -28,7 +28,7 @@ class WeeklyPlanView extends StatelessWidget {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(20),
           child: Column(
             children: [
               // Plan Title
@@ -51,22 +51,17 @@ class WeeklyPlanView extends StatelessWidget {
                   border: OutlineInputBorder(),
                 ),
                 onChanged: (value) {
-                  final numericValue = value.replaceAll(',', '');
+                  final numeric = value.replaceAll(',', '');
+                  if (numeric.isEmpty) return;
 
-                  if (numericValue.isEmpty) {
-                    _weeklyViewModel.amountToSpreadController.clear();
-                    return;
-                  }
-
-                  final formatted =
-                      nairaFormat.format(int.parse(numericValue));
-
+                  final formatted = nairaFormat.format(int.parse(numeric));
                   _weeklyViewModel.amountToSpreadController.value =
                       TextEditingValue(
-                    text: formatted,
-                    selection:
-                        TextSelection.collapsed(offset: formatted.length),
-                  );
+                        text: formatted,
+                        selection: TextSelection.collapsed(
+                          offset: formatted.length,
+                        ),
+                      );
                 },
               ),
               const SizedBox(height: 20),
@@ -95,52 +90,72 @@ class WeeklyPlanView extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
+              // Bank Picker
+              TextField(
+                controller: _weeklyViewModel.bankNameController,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'Select Bank',
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.keyboard_arrow_down),
+                ),
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => BankPickerSheet(
+                      banks: _weeklyViewModel.banks,
+                      onSelected: (bank) {
+                        _weeklyViewModel.selectedBank.value = bank;
+                        _weeklyViewModel.bankNameController.text = bank.name;
+                        _weeklyViewModel.fetchAccountName();
+                        Navigator.pop(context);
+                      },
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+
               // Account Number
               TextField(
                 controller: _weeklyViewModel.accountNumberController,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
-                  labelText: 'Your Preferred Account Number',
+                  labelText: 'Account Number',
                   border: OutlineInputBorder(),
                 ),
+                onChanged: (_) => _weeklyViewModel.fetchAccountName(),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
 
               // Account Name
-              TextField(
-                controller: _weeklyViewModel.accountNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Account Name',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Bank Name
-              TextField(
-                controller: _weeklyViewModel.bankNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Bank Name',
-                  border: OutlineInputBorder(),
-                ),
+              Obx(
+                () => _weeklyViewModel.isFetchingAccountName.value
+                    ? const LinearProgressIndicator()
+                    : TextField(
+                        controller: _weeklyViewModel.accountNameController,
+                        readOnly: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Account Name',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
               ),
               const SizedBox(height: 20),
 
               // Preferred Payment Day
               Obx(
                 () => DropdownButtonFormField<String>(
-                  value: _weeklyViewModel.selectedDay.value,
                   decoration: const InputDecoration(
                     labelText: 'Preferred Payment Day',
                     border: OutlineInputBorder(),
                   ),
+                  value: _weeklyViewModel.selectedDay.value,
                   items: _weeklyViewModel.allowedDays
                       .map(
-                        (day) => DropdownMenuItem(
-                          value: day,
-                          child: Text(day),
-                        ),
+                        (day) => DropdownMenuItem(value: day, child: Text(day)),
                       )
                       .toList(),
                   onChanged: (value) {
@@ -152,7 +167,7 @@ class WeeklyPlanView extends StatelessWidget {
               ),
               const SizedBox(height: 30),
 
-              // Create Plan Button
+              // Create Button
               SizedBox(
                 width: double.infinity,
                 height: 50,

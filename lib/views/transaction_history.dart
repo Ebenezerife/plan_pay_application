@@ -5,11 +5,9 @@ import 'package:plan_pay_application/view_models/monthly_view_model.dart';
 import 'package:plan_pay_application/view_models/weekly_view_model.dart';
 import 'package:plan_pay_application/view_models/wallet_view_model.dart';
 import 'package:plan_pay_application/models/transaction_model.dart';
-import 'package:plan_pay_application/models/monthly_plan.dart';
-import 'package:plan_pay_application/models/weekly_plan.dart';
 
 class TransactionHistory extends StatefulWidget {
-  TransactionHistory({super.key});
+  const TransactionHistory({super.key});
 
   @override
   State<TransactionHistory> createState() => _TransactionHistoryState();
@@ -21,6 +19,8 @@ class _TransactionHistoryState extends State<TransactionHistory> {
   final WeeklyViewModel weeklyVM = Get.find();
 
   final DateFormat dateFormat = DateFormat('EEE, dd MMM yyyy');
+  final NumberFormat currencyFormat =
+      NumberFormat.currency(locale: 'en_NG', symbol: '₦');
 
   String selectedTab = 'Deposit'; // Default selected tab
 
@@ -39,84 +39,54 @@ class _TransactionHistoryState extends State<TransactionHistory> {
           ),
           subtitle: Text(dateFormat.format(tx.date)),
           trailing: Text(
-            '₦${tx.amount.toStringAsFixed(2)}',
+            currencyFormat.format(tx.amount),
             style: TextStyle(color: color, fontWeight: FontWeight.bold),
           ),
         ),
       );
     }
 
-    Widget buildPlanCardMonthly(MonthlyPlan plan) {
+    // Generic plan card builder for both Weekly and Monthly plans
+    Widget buildPlanCard({
+      required String planTitle,
+      required double amount,
+      required int duration,
+      required String durationLabel,
+      required List<DateTime> paymentDates,
+      required String accountName,
+      required String accountNumber,
+      required String bank,
+    }) {
       final now = DateTime.now();
-      final nextPayment = plan.paymentDates.firstWhere(
+      final nextPayment = paymentDates.firstWhere(
         (d) => !d.isBefore(now),
-        orElse: () =>
-            plan.paymentDates.isNotEmpty ? plan.paymentDates.last : now,
+        orElse: () => paymentDates.isNotEmpty ? paymentDates.last : now,
       );
 
       return Card(
         margin: const EdgeInsets.symmetric(vertical: 6),
         child: ListTile(
           title: Text(
-            plan.planTitle,
+            planTitle,
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           subtitle: Text(
-            'Amount: ₦${plan.amountToSpread.toStringAsFixed(2)}\n'
-            'Duration: ${plan.numberOfMonths} months\n'
+            'Amount: ${currencyFormat.format(amount)}\n'
+            'Duration: $duration $durationLabel\n'
             'Next Payment: ${dateFormat.format(nextPayment)}',
           ),
           trailing: const Icon(Icons.arrow_forward),
           onTap: () {
             Get.to(
               () => PlanDetailView(
-                title: plan.planTitle,
-                amount: plan.amountToSpread,
-                duration: plan.numberOfMonths,
-                durationLabel: 'Months',
-                paymentDates: plan.paymentDates,
-                accountName: plan.accountName,
-                accountNumber: plan.accountNumber,
-                bank: plan.bank,
-              ),
-            );
-          },
-        ),
-      );
-    }
-
-    Widget buildPlanCardWeekly(WeeklyPlan plan) {
-      final now = DateTime.now();
-      final nextPayment = plan.paymentDates.firstWhere(
-        (d) => !d.isBefore(now),
-        orElse: () =>
-            plan.paymentDates.isNotEmpty ? plan.paymentDates.last : now,
-      );
-
-      return Card(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        child: ListTile(
-          title: Text(
-            plan.planTitle,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          subtitle: Text(
-            'Amount: ₦${plan.amountToSpread.toStringAsFixed(2)}\n'
-            'Duration: ${plan.numberOfWeeks} weeks\n'
-            'Next Payment: ${dateFormat.format(nextPayment)}',
-          ),
-          trailing: const Icon(Icons.arrow_forward),
-          onTap: () {
-            Get.to(
-              () => PlanDetailView(
-                title: plan.planTitle,
-                amount: plan.amountToSpread,
-                duration: plan.numberOfWeeks,
-                durationLabel: 'Weeks',
-                paymentDates: plan.paymentDates,
-                accountName: plan.accountName,
-                accountNumber: plan.accountNumber,
-                bank: plan.bank,
+                title: planTitle,
+                amount: amount,
+                duration: duration,
+                durationLabel: durationLabel,
+                paymentDates: paymentDates,
+                accountName: accountName,
+                accountNumber: accountNumber,
+                bank: bank,
               ),
             );
           },
@@ -151,24 +121,43 @@ class _TransactionHistoryState extends State<TransactionHistory> {
 
     List<Widget> buildSelectedTabContent() {
       if (selectedTab == 'Deposit') {
-        // Sort deposits by date descending (newest first)
         final sortedTx = walletVM.transactions.toList()
           ..sort((a, b) => b.date.compareTo(a.date));
         return sortedTx.map(buildWalletTransactionCard).toList();
       } else if (selectedTab == 'Monthly') {
-        // Sort monthly plans by creation date descending
         final sortedMonthly = monthlyVM.plans.toList()
           ..sort(
             (a, b) => DateTime.parse(b.id).compareTo(DateTime.parse(a.id)),
           );
-        return sortedMonthly.map(buildPlanCardMonthly).toList();
+        return sortedMonthly.map((plan) {
+          return buildPlanCard(
+            planTitle: plan.planTitle,
+            amount: plan.amountToSpread,
+            duration: plan.numberOfMonths,
+            durationLabel: 'Months',
+            paymentDates: plan.paymentDates,
+            accountName: plan.accountName,
+            accountNumber: plan.accountNumber,
+            bank: plan.bank,
+          );
+        }).toList();
       } else if (selectedTab == 'Weekly') {
-        // Sort weekly plans by creation date descending
         final sortedWeekly = weeklyVM.plans.toList()
           ..sort(
             (a, b) => DateTime.parse(b.id).compareTo(DateTime.parse(a.id)),
           );
-        return sortedWeekly.map(buildPlanCardWeekly).toList();
+        return sortedWeekly.map((plan) {
+          return buildPlanCard(
+            planTitle: plan.planTitle,
+            amount: plan.amountToSpread,
+            duration: plan.numberOfWeeks,
+            durationLabel: 'Weeks',
+            paymentDates: plan.paymentDates,
+            accountName: plan.accountName,
+            accountNumber: plan.accountNumber,
+            bank: plan.bank,
+          );
+        }).toList();
       } else {
         return [];
       }
@@ -199,9 +188,8 @@ class _TransactionHistoryState extends State<TransactionHistory> {
             Expanded(
               child: Obx(() {
                 final content = buildSelectedTabContent();
-                if (content.isEmpty) {
+                if (content.isEmpty)
                   return const Center(child: Text('No records available.'));
-                }
                 return ListView(children: content);
               }),
             ),
@@ -212,7 +200,7 @@ class _TransactionHistoryState extends State<TransactionHistory> {
   }
 }
 
-// Detail view remains same as previous code
+// Detail view
 class PlanDetailView extends StatelessWidget {
   final String title;
   final double amount;
@@ -224,6 +212,8 @@ class PlanDetailView extends StatelessWidget {
   final String bank;
 
   final DateFormat dateFormat = DateFormat('EEE, dd MMM yyyy');
+  final NumberFormat currencyFormat =
+      NumberFormat.currency(locale: 'en_NG', symbol: '₦');
 
   PlanDetailView({
     super.key,
@@ -245,6 +235,10 @@ class PlanDetailView extends StatelessWidget {
       orElse: () => paymentDates.isNotEmpty ? paymentDates.last : now,
     );
 
+    // Calculate installment per payment date (dummy example)
+    double installmentAmount =
+        paymentDates.isNotEmpty ? amount / paymentDates.length : 0;
+
     return Scaffold(
       appBar: AppBar(title: Text(title), backgroundColor: Colors.amberAccent),
       body: Padding(
@@ -253,7 +247,7 @@ class PlanDetailView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Amount to Spread: ₦${amount.toStringAsFixed(2)}',
+              'Amount to Spread: ${currencyFormat.format(amount)}',
               style: const TextStyle(fontSize: 18),
             ),
             Text(
@@ -279,12 +273,11 @@ class PlanDetailView extends StatelessWidget {
                 children: paymentDates.map((d) {
                   final isFuture = !d.isBefore(now);
                   return Text(
-                    '- ${dateFormat.format(d)}',
+                    '- ${dateFormat.format(d)}: ${currencyFormat.format(installmentAmount)}',
                     style: TextStyle(
                       color: isFuture ? Colors.green : Colors.grey,
-                      fontWeight: isFuture
-                          ? FontWeight.bold
-                          : FontWeight.normal,
+                      fontWeight:
+                          isFuture ? FontWeight.bold : FontWeight.normal,
                     ),
                   );
                 }).toList(),

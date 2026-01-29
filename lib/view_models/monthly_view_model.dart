@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:plan_pay_application/models/bank.dart';
 import 'package:plan_pay_application/models/monthly_plan.dart';
+import 'package:plan_pay_application/services/bank_api_service.dart';
 import 'package:plan_pay_application/view_models/wallet_view_model.dart';
 
 class MonthlyViewModel extends GetxController {
+  final bankService = BankApiService();
+
+  /// Banks loaded dynamically from backend
+  final banks = <Bank>[].obs;
+
   /// Plans
   final plans = <MonthlyPlan>[].obs;
 
@@ -15,6 +22,10 @@ class MonthlyViewModel extends GetxController {
   final accountNameController = TextEditingController();
   final bankNameController = TextEditingController();
 
+  /// Bank verification
+  final selectedBank = Rxn<Bank>();
+  final isFetchingAccountName = false.obs;
+
   /// Computed values
   final monthlyPayment = 0.0.obs;
 
@@ -22,23 +33,20 @@ class MonthlyViewModel extends GetxController {
   final selectedDay = '1'.obs;
   final selectedMonth = DateTime.now().obs;
 
-  final List<String> allowedDays = List.generate(
-    25,
-    (index) => (index + 1).toString(),
-  );
-
+  final List<String> allowedDays = List.generate(25, (index) => (index + 1).toString());
   final allowedMonths = <DateTime>[].obs;
 
   @override
   void onInit() {
     super.onInit();
 
-    // Auto-calculate payment when inputs change
     amountToSpreadController.addListener(calculateMonthlyPayment);
     numberOfMonthsController.addListener(calculateMonthlyPayment);
 
     _updateAllowedMonths();
     ever(selectedDay, (_) => _updateAllowedMonths());
+
+    loadBanks();
   }
 
   @override
@@ -52,35 +60,38 @@ class MonthlyViewModel extends GetxController {
     super.onClose();
   }
 
-  /// ✅ Calculate monthly payment (comma-safe)
-  void calculateMonthlyPayment() {
-    final amount =
-        double.tryParse(
-          amountToSpreadController.text.replaceAll(',', '').trim(),
-        ) ??
-        0;
-
-    final months = int.tryParse(numberOfMonthsController.text.trim()) ?? 0;
-
-    if (amount > 0 && months > 0) {
-      monthlyPayment.value = amount / months;
-    } else {
-      monthlyPayment.value = 0.0;
+  /// Load banks dynamically from backend
+  Future<void> loadBanks() async {
+    if (banks.isNotEmpty) return;
+    try {
+      final fetchedBanks = await bankService.getBanks();
+      banks.value = fetchedBanks;
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to load banks: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     }
   }
 
-  /// Update allowed months based on today's date and selected day
+  /// Calculate monthly payment
+  void calculateMonthlyPayment() {
+    final amount = double.tryParse(amountToSpreadController.text.replaceAll(',', '').trim()) ?? 0;
+    final months = int.tryParse(numberOfMonthsController.text.trim()) ?? 0;
+    monthlyPayment.value = (amount > 0 && months > 0) ? amount / months : 0.0;
+  }
+
   void _updateAllowedMonths() {
     final today = DateTime.now();
     final day = int.parse(selectedDay.value);
-
     final List<DateTime> months = [];
 
     for (int i = 0; i < 24; i++) {
       int month = ((today.month - 1 + i) % 12) + 1;
       int year = today.year + ((today.month - 1 + i) ~/ 12);
 
-      // Skip current month if selected day already passed
       if (!(month == today.month && day <= today.day)) {
         months.add(DateTime(year, month));
       }
@@ -88,23 +99,13 @@ class MonthlyViewModel extends GetxController {
 
     allowedMonths.value = months;
 
-    // Reset selected month if invalid
-    if (!allowedMonths.any(
-      (m) =>
-          m.month == selectedMonth.value.month &&
-          m.year == selectedMonth.value.year,
-    )) {
+    if (!allowedMonths.any((m) => m.month == selectedMonth.value.month && m.year == selectedMonth.value.year)) {
       selectedMonth.value = allowedMonths.first;
     }
   }
 
-  /// Generate payment dates
-  List<DateTime> generateMonthlyPaymentDates({
-    required int preferredDay,
-    required int numberOfMonths,
-  }) {
+  List<DateTime> generateMonthlyPaymentDates({required int preferredDay, required int numberOfMonths}) {
     final List<DateTime> dates = [];
-
     int firstMonth = selectedMonth.value.month;
     int firstYear = selectedMonth.value.year;
 
@@ -112,23 +113,52 @@ class MonthlyViewModel extends GetxController {
       int month = firstMonth + i;
       int year = firstYear + (month - 1) ~/ 12;
       month = ((month - 1) % 12) + 1;
-
       dates.add(DateTime(year, month, preferredDay));
     }
 
     return dates;
   }
 
-  /// ✅ Create plan (comma-safe)
+  /// Fetch account name from backend API
+  Future<void> fetchAccountName() async {
+    final accountNumber = accountNumberController.text.trim();
+    final bank = selectedBank.value;
+
+    if (accountNumber.isEmpty || bank == null) {
+      accountNameController.text = '';
+      return;
+    }
+
+    if (accountNumber.length < 10) {
+      accountNameController.text = 'Account number too short';
+      return;
+    }
+
+    try {
+      isFetchingAccountName.value = true;
+      final name = await bankService.resolveAccount(
+        accountNumber: accountNumber,
+        bankCode: bank.code,
+      );
+      accountNameController.text = name;
+      bankNameController.text = bank.name;
+    } catch (e) {
+      accountNameController.text = 'Failed to resolve account';
+      bankNameController.text = '';
+      Get.snackbar(
+        'Error',
+        e.toString(),
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      isFetchingAccountName.value = false;
+    }
+  }
+
   void createMonthlyPlan() {
     final walletVM = Get.find<WalletViewModel>();
-
-    final amount =
-        double.tryParse(
-          amountToSpreadController.text.replaceAll(',', '').trim(),
-        ) ??
-        0;
-
+    final amount = double.tryParse(amountToSpreadController.text.replaceAll(',', '').trim()) ?? 0;
     final months = int.tryParse(numberOfMonthsController.text.trim()) ?? 0;
 
     if (amount <= 0 || months <= 0) {
@@ -142,7 +172,6 @@ class MonthlyViewModel extends GetxController {
     }
 
     final monthlyPay = amount / months;
-
     walletVM.debit(amount, 'Monthly Plan: ${planTitleController.text}');
 
     final plan = MonthlyPlan(
@@ -165,7 +194,6 @@ class MonthlyViewModel extends GetxController {
     clearForm();
   }
 
-  /// Reset form
   void clearForm() {
     planTitleController.clear();
     amountToSpreadController.clear();
@@ -176,10 +204,9 @@ class MonthlyViewModel extends GetxController {
 
     monthlyPayment.value = 0.0;
     selectedDay.value = '1';
+    selectedBank.value = null;
 
-    _updateAllowedMonths(); // recompute allowed months
-    if (allowedMonths.isNotEmpty) {
-      selectedMonth.value = allowedMonths.first; // reset Start Month
-    }
+    _updateAllowedMonths();
+    if (allowedMonths.isNotEmpty) selectedMonth.value = allowedMonths.first;
   }
 }

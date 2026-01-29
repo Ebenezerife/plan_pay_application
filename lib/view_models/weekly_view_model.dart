@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:plan_pay_application/models/bank.dart';
 import 'package:plan_pay_application/models/weekly_plan.dart';
+import 'package:plan_pay_application/services/bank_api_service.dart';
 import 'package:plan_pay_application/view_models/wallet_view_model.dart';
 
 class WeeklyViewModel extends GetxController {
+  final bankService = BankApiService();
+
+  /// Banks loaded dynamically from backend
+  final banks = <Bank>[].obs;
+
   /// Plans
   final plans = <WeeklyPlan>[].obs;
 
@@ -15,26 +22,24 @@ class WeeklyViewModel extends GetxController {
   final accountNameController = TextEditingController();
   final bankNameController = TextEditingController();
 
-  /// Computed
+  /// Bank verification
+  final selectedBank = Rxn<Bank>();
+  final isFetchingAccountName = false.obs;
+
+  /// Computed values
   final weeklyPayment = 0.0.obs;
 
   /// Day selection
   final selectedDay = 'Monday'.obs;
-
-  final List<String> allowedDays = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-  ];
+  final allowedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
   @override
   void onInit() {
     super.onInit();
-
     amountToSpreadController.addListener(calculateWeeklyPayment);
     numberOfWeeksController.addListener(calculateWeeklyPayment);
+
+    loadBanks();
   }
 
   @override
@@ -48,53 +53,35 @@ class WeeklyViewModel extends GetxController {
     super.onClose();
   }
 
+  /// Load banks dynamically from backend
+  Future<void> loadBanks() async {
+    if (banks.isNotEmpty) return;
+    try {
+      final fetchedBanks = await bankService.getBanks();
+      banks.value = fetchedBanks;
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to load banks: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
   /// Calculate weekly payment
   void calculateWeeklyPayment() {
-    final amount = double.tryParse(
-          amountToSpreadController.text.replaceAll(',', '').trim(),
-        ) ??
-        0;
-    final weeks =
-        int.tryParse(numberOfWeeksController.text.trim()) ?? 0;
-
-    if (amount > 0 && weeks > 0) {
-      weeklyPayment.value = amount / weeks;
-    } else {
-      weeklyPayment.value = 0.0;
-    }
+    final amount = double.tryParse(amountToSpreadController.text.replaceAll(',', '').trim()) ?? 0;
+    final weeks = int.tryParse(numberOfWeeksController.text.trim()) ?? 0;
+    weeklyPayment.value = (amount > 0 && weeks > 0) ? amount / weeks : 0.0;
   }
 
-  bool validateSelectedDay() {
-    final today = DateTime.now();
-
-    const weekdays = {
-      'Monday': 1,
-      'Tuesday': 2,
-      'Wednesday': 3,
-      'Thursday': 4,
-      'Friday': 5,
-    };
-
-    final targetWeekday = weekdays[selectedDay.value]!;
-    int daysToAdd = (targetWeekday - today.weekday + 7) % 7;
-    if (daysToAdd == 0) daysToAdd = 7;
-
-    if (daysToAdd <= 0) {
-      Get.snackbar(
-        'Invalid Day',
-        'DATE YOU PICKED IS EXPIRED. Please pick a future weekday.',
-      );
-      return false;
-    }
-    return true;
-  }
-
+  /// Generate weekly payment dates
   List<DateTime> generateWeeklyPaymentDates({
     required String paymentDay,
     required int numberOfWeeks,
   }) {
     final today = DateTime.now();
-
     const weekdays = {
       'Monday': 1,
       'Tuesday': 2,
@@ -115,24 +102,53 @@ class WeeklyViewModel extends GetxController {
     );
   }
 
-  void createWeeklyPlan() {
-    final walletVM = Get.find<WalletViewModel>();
+  /// Fetch account name from backend API
+  Future<void> fetchAccountName() async {
+    final accountNumber = accountNumberController.text.trim();
+    final bank = selectedBank.value;
 
-    final amount = double.tryParse(
-          amountToSpreadController.text.replaceAll(',', ''),
-        ) ??
-        0;
-    final weeks = int.tryParse(numberOfWeeksController.text) ?? 0;
-
-    if (amount <= 0 || weeks <= 0) {
-      Get.snackbar(
-        'Invalid Input',
-        'Please enter valid amount and number of weeks',
-      );
+    if (accountNumber.isEmpty || bank == null) {
+      accountNameController.text = '';
       return;
     }
 
-    if (!validateSelectedDay()) return;
+    if (accountNumber.length < 10) {
+      accountNameController.text = 'Account number too short';
+      return;
+    }
+
+    try {
+      isFetchingAccountName.value = true;
+      final name = await bankService.resolveAccount(
+        accountNumber: accountNumber,
+        bankCode: bank.code,
+      );
+      accountNameController.text = name;
+      bankNameController.text = bank.name;
+    } catch (e) {
+      accountNameController.text = 'Failed to resolve account';
+      bankNameController.text = '';
+      Get.snackbar(
+        'Error',
+        e.toString(),
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      isFetchingAccountName.value = false;
+    }
+  }
+
+  /// Create weekly plan
+  void createWeeklyPlan() {
+    final walletVM = Get.find<WalletViewModel>();
+    final amount = double.tryParse(amountToSpreadController.text.replaceAll(',', '').trim()) ?? 0;
+    final weeks = int.tryParse(numberOfWeeksController.text.trim()) ?? 0;
+
+    if (amount <= 0 || weeks <= 0) {
+      Get.snackbar('Error', 'Please fill in all required fields correctly');
+      return;
+    }
 
     if (!walletVM.canDebit(amount)) {
       Get.snackbar('Error', 'Insufficient wallet balance');
@@ -140,7 +156,6 @@ class WeeklyViewModel extends GetxController {
     }
 
     final weeklyPay = amount / weeks;
-
     walletVM.debit(amount, 'Weekly Plan: ${planTitleController.text}');
 
     final plan = WeeklyPlan(
@@ -163,6 +178,7 @@ class WeeklyViewModel extends GetxController {
     clearForm();
   }
 
+  /// Clear form
   void clearForm() {
     planTitleController.clear();
     amountToSpreadController.clear();
@@ -170,7 +186,9 @@ class WeeklyViewModel extends GetxController {
     accountNumberController.clear();
     accountNameController.clear();
     bankNameController.clear();
+
     weeklyPayment.value = 0.0;
     selectedDay.value = 'Monday';
+    selectedBank.value = null;
   }
 }

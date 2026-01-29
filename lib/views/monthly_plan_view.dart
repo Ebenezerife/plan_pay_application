@@ -5,17 +5,15 @@ import 'package:intl/intl.dart';
 
 import 'package:plan_pay_application/utilities/currency_formatter.dart';
 import 'package:plan_pay_application/view_models/monthly_view_model.dart';
+import 'package:plan_pay_application/widgets/bank_picker_sheet.dart';
 
 class MonthlyPlanView extends StatelessWidget {
   MonthlyPlanView({super.key});
 
   final MonthlyViewModel _monthlyViewModel = Get.put(MonthlyViewModel());
-
   final NumberFormat nairaFormat = NumberFormat('#,##0', 'en_NG');
 
-  String monthYearName(DateTime dt) {
-    return DateFormat('MMM yyyy').format(dt);
-  }
+  String monthYearName(DateTime dt) => DateFormat('MMM yyyy').format(dt);
 
   @override
   Widget build(BuildContext context) {
@@ -33,10 +31,10 @@ class MonthlyPlanView extends StatelessWidget {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              // Plan Title
+              // ================= PLAN TITLE =================
               TextField(
                 controller: _monthlyViewModel.planTitleController,
                 decoration: const InputDecoration(
@@ -46,7 +44,7 @@ class MonthlyPlanView extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Amount To Spread (formatted)
+              // ================= AMOUNT =================
               TextField(
                 controller: _monthlyViewModel.amountToSpreadController,
                 keyboardType: TextInputType.number,
@@ -56,28 +54,21 @@ class MonthlyPlanView extends StatelessWidget {
                   border: OutlineInputBorder(),
                 ),
                 onChanged: (value) {
-                  final numericValue = value.replaceAll(',', '');
+                  final numeric = value.replaceAll(',', '');
+                  if (numeric.isEmpty) return;
 
-                  if (numericValue.isEmpty) {
-                    _monthlyViewModel.amountToSpreadController.clear();
-                    return;
-                  }
-
-                  final formatted = nairaFormat.format(int.parse(numericValue));
-
+                  final formatted = nairaFormat.format(int.parse(numeric));
                   _monthlyViewModel.amountToSpreadController.value =
                       TextEditingValue(
-                        text: formatted,
-                        selection: TextSelection.collapsed(
-                          offset: formatted.length,
-                        ),
-                      );
-                  // monthlyPayment recalculates automatically via listener
+                    text: formatted,
+                    selection:
+                        TextSelection.collapsed(offset: formatted.length),
+                  );
                 },
               ),
               const SizedBox(height: 20),
 
-              // Number of Months
+              // ================= MONTHS =================
               TextField(
                 controller: _monthlyViewModel.numberOfMonthsController,
                 keyboardType: TextInputType.number,
@@ -89,19 +80,46 @@ class MonthlyPlanView extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Live Monthly Payment Preview
+              // ================= PREVIEW =================
               Obx(
                 () => Text(
                   'Monthly Payment: ${CurrencyFormatter.format(_monthlyViewModel.monthlyPayment.value)}',
                   style: const TextStyle(
-                    fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
               ),
               const SizedBox(height: 20),
 
-              // Account Number
+              // ================= BANK PICKER =================
+              TextField(
+                controller: _monthlyViewModel.bankNameController,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'Select Bank',
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.keyboard_arrow_down),
+                ),
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => BankPickerSheet(
+                      banks: _monthlyViewModel.banks,
+                      onSelected: (bank) {
+                        _monthlyViewModel.selectedBank.value = bank;
+                        _monthlyViewModel.bankNameController.text = bank.name;
+                        _monthlyViewModel.fetchAccountName();
+                        Navigator.pop(context);
+                      },
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+
+              // ================= ACCOUNT NUMBER =================
               TextField(
                 controller: _monthlyViewModel.accountNumberController,
                 keyboardType: TextInputType.number,
@@ -110,40 +128,40 @@ class MonthlyPlanView extends StatelessWidget {
                   labelText: 'Account Number',
                   border: OutlineInputBorder(),
                 ),
+                onChanged: (_) => _monthlyViewModel.fetchAccountName(),
+              ),
+              const SizedBox(height: 10),
+
+              // ================= ACCOUNT NAME =================
+              Obx(
+                () => _monthlyViewModel.isFetchingAccountName.value
+                    ? const LinearProgressIndicator()
+                    : TextField(
+                        controller:
+                            _monthlyViewModel.accountNameController,
+                        readOnly: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Account Name',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
               ),
               const SizedBox(height: 20),
 
-              // Account Name
-              TextField(
-                controller: _monthlyViewModel.accountNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Account Name',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Bank Name
-              TextField(
-                controller: _monthlyViewModel.bankNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Bank Name',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Preferred Payment Day
+              // ================= PAYMENT DAY =================
               Obx(
                 () => DropdownButtonFormField<String>(
-                  value: _monthlyViewModel.selectedDay.value,
                   decoration: const InputDecoration(
                     labelText: 'Preferred Payment Day',
                     border: OutlineInputBorder(),
                   ),
+                  value: _monthlyViewModel.selectedDay.value,
                   items: _monthlyViewModel.allowedDays
                       .map(
-                        (day) => DropdownMenuItem(value: day, child: Text(day)),
+                        (day) => DropdownMenuItem(
+                          value: day,
+                          child: Text(day),
+                        ),
                       )
                       .toList(),
                   onChanged: (value) {
@@ -155,19 +173,19 @@ class MonthlyPlanView extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Start Month
+              // ================= START MONTH =================
               Obx(
                 () => DropdownButtonFormField<DateTime>(
-                  value: _monthlyViewModel.selectedMonth.value,
                   decoration: const InputDecoration(
                     labelText: 'Start Month',
                     border: OutlineInputBorder(),
                   ),
+                  value: _monthlyViewModel.selectedMonth.value,
                   items: _monthlyViewModel.allowedMonths
                       .map(
-                        (monthDt) => DropdownMenuItem(
-                          value: monthDt,
-                          child: Text(monthYearName(monthDt)),
+                        (month) => DropdownMenuItem(
+                          value: month,
+                          child: Text(monthYearName(month)),
                         ),
                       )
                       .toList(),
@@ -180,7 +198,7 @@ class MonthlyPlanView extends StatelessWidget {
               ),
               const SizedBox(height: 30),
 
-              // Create Plan Button
+              // ================= CREATE BUTTON =================
               SizedBox(
                 width: double.infinity,
                 height: 50,
