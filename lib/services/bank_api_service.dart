@@ -6,7 +6,7 @@ import 'package:plan_pay_application/models/bank.dart';
 class BankApiService {
   static final String baseUrl = kIsWeb
       ? 'http://localhost:3000' // for Web
-      : 'http://10.0.2.2:3000'; // for Android emulator
+      : 'http://192.168.43.11:3000'; // for Android emulator
 
   Future<List<Bank>> getBanks() async {
     final res = await http.get(Uri.parse('$baseUrl/banks'));
