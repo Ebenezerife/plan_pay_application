@@ -1,13 +1,37 @@
-class MonthlyPlan {
+import 'package:hive/hive.dart';
+
+part 'monthly_plan.g.dart';
+
+@HiveType(typeId: 1)
+class MonthlyPlan extends HiveObject {
+  @HiveField(0)
   final String id;
+
+  @HiveField(1)
   final String planTitle;
+
+  @HiveField(2)
   final double amountToSpread;
+
+  @HiveField(3)
   final int numberOfMonths;
+
+  @HiveField(4)
   final String accountNumber;
+
+  @HiveField(5)
   final String accountName;
+
+  @HiveField(6)
   final String bank;
+
+  @HiveField(7)
   final double monthlyPayment;
+
+  @HiveField(8)
   final String preferredDate; // 1-25
+
+  @HiveField(9)
   final List<DateTime> paymentDates;
 
   MonthlyPlan({
@@ -23,7 +47,6 @@ class MonthlyPlan {
     required this.paymentDates,
   });
 
-  /// Next payment date (today or future)
   DateTime? nextPayment() {
     final now = DateTime.now();
     if (paymentDates.isEmpty) return null;
@@ -32,32 +55,4 @@ class MonthlyPlan {
       orElse: () => paymentDates.last,
     );
   }
-
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'planTitle': planTitle,
-    'amountToSpread': amountToSpread,
-    'numberOfMonths': numberOfMonths,
-    'accountNumber': accountNumber,
-    'accountName': accountName,
-    'bank': bank,
-    'monthlyPayment': monthlyPayment,
-    'preferredDate': preferredDate,
-    'paymentDates': paymentDates.map((d) => d.toIso8601String()).toList(),
-  };
-
-  factory MonthlyPlan.fromMap(Map<String, dynamic> map) => MonthlyPlan(
-    id: map['id'],
-    planTitle: map['planTitle'],
-    amountToSpread: map['amountToSpread'],
-    numberOfMonths: map['numberOfMonths'],
-    accountNumber: map['accountNumber'],
-    accountName: map['accountName'],
-    bank: map['bank'],
-    monthlyPayment: map['monthlyPayment'],
-    preferredDate: map['preferredDate'],
-    paymentDates: List<String>.from(
-      map['paymentDates'],
-    ).map((s) => DateTime.parse(s)).toList(),
-  );
 }

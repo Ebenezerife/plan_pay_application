@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hive/hive.dart';
 import 'package:plan_pay_application/models/bank.dart';
 import 'package:plan_pay_application/models/monthly_plan.dart';
 import 'package:plan_pay_application/services/bank_api_service.dart';
@@ -39,6 +40,8 @@ class MonthlyViewModel extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    final box = Hive.box<MonthlyPlan>('monthly_plans');
+  plans.assignAll(box.values);
 
     amountToSpreadController.addListener(calculateMonthlyPayment);
     numberOfMonthsController.addListener(calculateMonthlyPayment);
@@ -192,6 +195,8 @@ class MonthlyViewModel extends GetxController {
 
     plans.add(plan);
     clearForm();
+    Hive.box<MonthlyPlan>('monthly_plans').add(plan);
+    Get.snackbar('Success', 'Monthly plan created successfully');
   }
 
   void clearForm() {

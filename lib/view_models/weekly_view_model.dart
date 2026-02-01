@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hive/hive.dart';
 import 'package:plan_pay_application/models/bank.dart';
 import 'package:plan_pay_application/models/weekly_plan.dart';
 import 'package:plan_pay_application/services/bank_api_service.dart';
@@ -36,6 +37,8 @@ class WeeklyViewModel extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    final box = Hive.box<WeeklyPlan>('weekly_plans');
+    plans.assignAll(box.values);
     amountToSpreadController.addListener(calculateWeeklyPayment);
     numberOfWeeksController.addListener(calculateWeeklyPayment);
 
@@ -71,7 +74,11 @@ class WeeklyViewModel extends GetxController {
 
   /// Calculate weekly payment
   void calculateWeeklyPayment() {
-    final amount = double.tryParse(amountToSpreadController.text.replaceAll(',', '').trim()) ?? 0;
+    final amount =
+        double.tryParse(
+          amountToSpreadController.text.replaceAll(',', '').trim(),
+        ) ??
+        0;
     final weeks = int.tryParse(numberOfWeeksController.text.trim()) ?? 0;
     weeklyPayment.value = (amount > 0 && weeks > 0) ? amount / weeks : 0.0;
   }
@@ -142,7 +149,11 @@ class WeeklyViewModel extends GetxController {
   /// Create weekly plan
   void createWeeklyPlan() {
     final walletVM = Get.find<WalletViewModel>();
-    final amount = double.tryParse(amountToSpreadController.text.replaceAll(',', '').trim()) ?? 0;
+    final amount =
+        double.tryParse(
+          amountToSpreadController.text.replaceAll(',', '').trim(),
+        ) ??
+        0;
     final weeks = int.tryParse(numberOfWeeksController.text.trim()) ?? 0;
 
     if (amount <= 0 || weeks <= 0) {
@@ -176,6 +187,8 @@ class WeeklyViewModel extends GetxController {
 
     plans.add(plan);
     clearForm();
+    Hive.box<WeeklyPlan>('weekly_plans').add(plan);
+    Get.snackbar('Success', 'Weekly plan created successfully');
   }
 
   /// Clear form

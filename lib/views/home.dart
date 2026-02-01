@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:plan_pay_application/view_models/auth_controller.dart';
 import 'package:plan_pay_application/view_models/monthly_view_model.dart';
 import 'package:plan_pay_application/view_models/wallet_view_model.dart';
 import 'package:plan_pay_application/view_models/weekly_view_model.dart';
@@ -39,6 +40,16 @@ class _HomeState extends State<Home> {
             color: Colors.green,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              // Implement logout functionality
+              // For example, you can call the logout method from AuthController
+              Get.find<AuthController>().logout();
+            },
+          ),
+        ],
         centerTitle: true,
         backgroundColor: Colors.amberAccent,
       ),
@@ -47,39 +58,37 @@ class _HomeState extends State<Home> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Wallet Balance
-            Obx(
-              () {
-                final balance = walletVM.wallet.value.balance;
-                final formattedBalance = nairaFormat.format(balance);
+            Obx(() {
+              final balance = walletVM.wallet.value.balance;
+              final formattedBalance = nairaFormat.format(balance);
 
-                return Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Wallet Balance',
-                        style: TextStyle(fontSize: 14),
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Wallet Balance',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      formattedBalance, // Use formatted balance
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        formattedBalance, // Use formatted balance
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                    ),
+                  ],
+                ),
+              );
+            }),
             const SizedBox(height: 20),
 
             ElevatedButton(

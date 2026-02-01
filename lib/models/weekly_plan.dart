@@ -1,13 +1,37 @@
-class WeeklyPlan {
+import 'package:hive/hive.dart';
+
+part 'weekly_plan.g.dart';
+
+@HiveType(typeId: 2)
+class WeeklyPlan extends HiveObject {
+  @HiveField(0)
   final String id;
+
+  @HiveField(1)
   final String planTitle;
+
+  @HiveField(2)
   final double amountToSpread;
+
+  @HiveField(3)
   final int numberOfWeeks;
+
+  @HiveField(4)
   final String accountNumber;
+
+  @HiveField(5)
   final String accountName;
+
+  @HiveField(6)
   final String bank;
+
+  @HiveField(7)
   final double weeklyPayment;
-  final String paymentDay; // Monday-Sunday
+
+  @HiveField(8)
+  final String paymentDay;
+
+  @HiveField(9)
   final List<DateTime> paymentDates;
 
   WeeklyPlan({
@@ -31,32 +55,4 @@ class WeeklyPlan {
       orElse: () => paymentDates.last,
     );
   }
-
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'planTitle': planTitle,
-    'amountToSpread': amountToSpread,
-    'numberOfWeeks': numberOfWeeks,
-    'accountNumber': accountNumber,
-    'accountName': accountName,
-    'bank': bank,
-    'weeklyPayment': weeklyPayment,
-    'paymentDay': paymentDay,
-    'paymentDates': paymentDates.map((d) => d.toIso8601String()).toList(),
-  };
-
-  factory WeeklyPlan.fromMap(Map<String, dynamic> map) => WeeklyPlan(
-    id: map['id'],
-    planTitle: map['planTitle'],
-    amountToSpread: map['amountToSpread'],
-    numberOfWeeks: map['numberOfWeeks'],
-    accountNumber: map['accountNumber'],
-    accountName: map['accountName'],
-    bank: map['bank'],
-    weeklyPayment: map['weeklyPayment'],
-    paymentDay: map['paymentDay'],
-    paymentDates: List<String>.from(
-      map['paymentDates'],
-    ).map((s) => DateTime.parse(s)).toList(),
-  );
 }

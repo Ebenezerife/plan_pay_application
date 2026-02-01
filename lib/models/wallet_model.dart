@@ -7,3 +7,4 @@ class Wallet {
     this.currency = 'NGN',
   });
 }
+
