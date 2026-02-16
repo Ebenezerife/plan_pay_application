@@ -5,12 +5,14 @@ import 'package:plan_pay_application/models/bank.dart';
 import 'package:plan_pay_application/models/weekly_plan.dart';
 import 'package:plan_pay_application/services/bank_api_service.dart';
 import 'package:plan_pay_application/view_models/wallet_view_model.dart';
+import 'package:plan_pay_application/views/home.dart';
 
 class WeeklyViewModel extends GetxController {
   final bankService = BankApiService();
 
   /// Banks loaded dynamically from backend
   final banks = <Bank>[].obs;
+  final isCreatingPlan = false.obs;
 
   /// Plans
   final plans = <WeeklyPlan>[].obs;
@@ -32,7 +34,7 @@ class WeeklyViewModel extends GetxController {
 
   /// Day selection
   final selectedDay = 'Monday'.obs;
-  final allowedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  final allowedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   @override
   void onInit() {
@@ -95,6 +97,8 @@ class WeeklyViewModel extends GetxController {
       'Wednesday': 3,
       'Thursday': 4,
       'Friday': 5,
+      'Saturday': 6,
+      'Sunday': 7,
     };
 
     final targetWeekday = weekdays[paymentDay]!;
@@ -147,48 +151,58 @@ class WeeklyViewModel extends GetxController {
   }
 
   /// Create weekly plan
-  void createWeeklyPlan() {
-    final walletVM = Get.find<WalletViewModel>();
-    final amount =
-        double.tryParse(
-          amountToSpreadController.text.replaceAll(',', '').trim(),
-        ) ??
-        0;
-    final weeks = int.tryParse(numberOfWeeksController.text.trim()) ?? 0;
+  Future<void> createWeeklyPlan() async {
+    if (isCreatingPlan.value) return;
+    isCreatingPlan.value = true;
 
-    if (amount <= 0 || weeks <= 0) {
-      Get.snackbar('Error', 'Please fill in all required fields correctly');
-      return;
-    }
+    try {
+      final walletVM = Get.find<WalletViewModel>();
+      final amount =
+          double.tryParse(
+            amountToSpreadController.text.replaceAll(',', '').trim(),
+          ) ??
+          0;
+      final weeks = int.tryParse(numberOfWeeksController.text.trim()) ?? 0;
 
-    if (!walletVM.canDebit(amount)) {
-      Get.snackbar('Error', 'Insufficient wallet balance');
-      return;
-    }
+      if (amount <= 0 ||
+          weeks <= 0 ||
+          planTitleController.text.trim().isEmpty) {
+        Get.snackbar('Error', 'Please fill in all required fields correctly');
+        return;
+      }
 
-    final weeklyPay = amount / weeks;
-    walletVM.debit(amount, 'Weekly Plan: ${planTitleController.text}');
+      if (!walletVM.canDebit(amount)) {
+        Get.snackbar('Error', 'Insufficient wallet balance');
+        return;
+      }
 
-    final plan = WeeklyPlan(
-      id: DateTime.now().toIso8601String(),
-      planTitle: planTitleController.text,
-      amountToSpread: amount,
-      numberOfWeeks: weeks,
-      accountNumber: accountNumberController.text,
-      accountName: accountNameController.text,
-      bank: bankNameController.text,
-      weeklyPayment: weeklyPay,
-      paymentDay: selectedDay.value,
-      paymentDates: generateWeeklyPaymentDates(
-        paymentDay: selectedDay.value,
+      final weeklyPay = amount / weeks;
+      walletVM.debit(amount, 'Weekly Plan: ${planTitleController.text}');
+
+      final plan = WeeklyPlan(
+        id: DateTime.now().toIso8601String(),
+        planTitle: planTitleController.text,
+        amountToSpread: amount,
         numberOfWeeks: weeks,
-      ),
-    );
+        accountNumber: accountNumberController.text,
+        accountName: accountNameController.text,
+        bank: bankNameController.text,
+        weeklyPayment: weeklyPay,
+        paymentDay: selectedDay.value,
+        paymentDates: generateWeeklyPaymentDates(
+          paymentDay: selectedDay.value,
+          numberOfWeeks: weeks,
+        ),
+      );
 
-    plans.add(plan);
-    clearForm();
-    Hive.box<WeeklyPlan>('weekly_plans').add(plan);
-    Get.snackbar('Success', 'Weekly plan created successfully');
+      plans.add(plan);
+      clearForm();
+      Hive.box<WeeklyPlan>('weekly_plans').add(plan);
+      Get.snackbar('Success', 'Weekly plan created successfully');
+      Get.offAll(Home());
+    } finally {
+      isCreatingPlan.value = false;
+    }
   }
 
   /// Clear form

@@ -44,6 +44,7 @@ class MyApp extends StatelessWidget {
     final AuthController authService = Get.find();
     return GetMaterialApp(
       title: 'Plan Pay Application',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
       home: Obx(
         () => authService.user.value != null

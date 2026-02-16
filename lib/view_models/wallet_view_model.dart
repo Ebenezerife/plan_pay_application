@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+import 'package:plan_pay_application/views/home.dart';
 
 import '../models/wallet_model.dart';
 import '../models/transaction_model.dart';
@@ -59,6 +60,7 @@ class WalletViewModel extends GetxController {
 
     transactions.add(tx);
     _saveTransaction(tx);
+    Get.offAll(Home());
   }
 
   bool canDebit(double amount) => wallet.value.balance >= amount;

@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:plan_pay_application/views/home.dart';
+import 'package:plan_pay_application/views/login_view.dart';
 import '../services/auth_service.dart';
 
 class AuthController extends GetxController {
@@ -28,7 +30,7 @@ class AuthController extends GetxController {
         phone: phone,
         password: password,
       );
-      Get.offAllNamed('/home');
+      Get.offAll(Home());
     } catch (e) {
       Get.snackbar('Registration Failed', e.toString());
     } finally {
@@ -39,11 +41,8 @@ class AuthController extends GetxController {
   Future<void> login(String email, String password) async {
     try {
       isLoading.value = true;
-      user.value = await authService.login(
-        email: email,
-        password: password,
-      );
-      Get.offAllNamed('/home');
+      user.value = await authService.login(email: email, password: password);
+      Get.offAll(Home());
     } catch (e) {
       Get.snackbar('Login Failed', e.toString());
     } finally {
@@ -54,7 +53,7 @@ class AuthController extends GetxController {
   Future<void> logout() async {
     await authService.logout();
     user.value = null;
-    Get.offAllNamed('/login');
+    Get.offAll(LoginView());
   }
 
   Future<void> forgotPassword(String email) async {

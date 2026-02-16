@@ -5,12 +5,14 @@ import 'package:plan_pay_application/models/bank.dart';
 import 'package:plan_pay_application/models/monthly_plan.dart';
 import 'package:plan_pay_application/services/bank_api_service.dart';
 import 'package:plan_pay_application/view_models/wallet_view_model.dart';
+import 'package:plan_pay_application/views/home.dart';
 
 class MonthlyViewModel extends GetxController {
   final bankService = BankApiService();
 
   /// Banks loaded dynamically from backend
   final banks = <Bank>[].obs;
+  final isCreatingPlan = false.obs;
 
   /// Plans
   final plans = <MonthlyPlan>[].obs;
@@ -34,14 +36,17 @@ class MonthlyViewModel extends GetxController {
   final selectedDay = '1'.obs;
   final selectedMonth = DateTime.now().obs;
 
-  final List<String> allowedDays = List.generate(25, (index) => (index + 1).toString());
+  final List<String> allowedDays = List.generate(
+    25,
+    (index) => (index + 1).toString(),
+  );
   final allowedMonths = <DateTime>[].obs;
 
   @override
   void onInit() {
     super.onInit();
     final box = Hive.box<MonthlyPlan>('monthly_plans');
-  plans.assignAll(box.values);
+    plans.assignAll(box.values);
 
     amountToSpreadController.addListener(calculateMonthlyPayment);
     numberOfMonthsController.addListener(calculateMonthlyPayment);
@@ -81,7 +86,11 @@ class MonthlyViewModel extends GetxController {
 
   /// Calculate monthly payment
   void calculateMonthlyPayment() {
-    final amount = double.tryParse(amountToSpreadController.text.replaceAll(',', '').trim()) ?? 0;
+    final amount =
+        double.tryParse(
+          amountToSpreadController.text.replaceAll(',', '').trim(),
+        ) ??
+        0;
     final months = int.tryParse(numberOfMonthsController.text.trim()) ?? 0;
     monthlyPayment.value = (amount > 0 && months > 0) ? amount / months : 0.0;
   }
@@ -102,12 +111,19 @@ class MonthlyViewModel extends GetxController {
 
     allowedMonths.value = months;
 
-    if (!allowedMonths.any((m) => m.month == selectedMonth.value.month && m.year == selectedMonth.value.year)) {
+    if (!allowedMonths.any(
+      (m) =>
+          m.month == selectedMonth.value.month &&
+          m.year == selectedMonth.value.year,
+    )) {
       selectedMonth.value = allowedMonths.first;
     }
   }
 
-  List<DateTime> generateMonthlyPaymentDates({required int preferredDay, required int numberOfMonths}) {
+  List<DateTime> generateMonthlyPaymentDates({
+    required int preferredDay,
+    required int numberOfMonths,
+  }) {
     final List<DateTime> dates = [];
     int firstMonth = selectedMonth.value.month;
     int firstYear = selectedMonth.value.year;
@@ -159,44 +175,57 @@ class MonthlyViewModel extends GetxController {
     }
   }
 
-  void createMonthlyPlan() {
-    final walletVM = Get.find<WalletViewModel>();
-    final amount = double.tryParse(amountToSpreadController.text.replaceAll(',', '').trim()) ?? 0;
-    final months = int.tryParse(numberOfMonthsController.text.trim()) ?? 0;
+  Future<void> createMonthlyPlan() async {
+    if (isCreatingPlan.value) return;
+    isCreatingPlan.value = true;
+    try {
+      final walletVM = Get.find<WalletViewModel>();
+      final amount =
+          double.tryParse(
+            amountToSpreadController.text.replaceAll(',', '').trim(),
+          ) ??
+          0;
+      final months = int.tryParse(numberOfMonthsController.text.trim()) ?? 0;
 
-    if (amount <= 0 || months <= 0) {
-      Get.snackbar('Error', 'Please fill in all required fields correctly');
-      return;
-    }
+      if (amount <= 0 ||
+          months <= 0 ||
+          planTitleController.text.trim().isEmpty) {
+        Get.snackbar('Error', 'Please fill in all required fields correctly');
+        return;
+      }
 
-    if (!walletVM.canDebit(amount)) {
-      Get.snackbar('Error', 'Insufficient wallet balance');
-      return;
-    }
+      if (!walletVM.canDebit(amount)) {
+        Get.snackbar('Error', 'Insufficient wallet balance');
+        return;
+      }
 
-    final monthlyPay = amount / months;
-    walletVM.debit(amount, 'Monthly Plan: ${planTitleController.text}');
+      final monthlyPay = amount / months;
+      walletVM.debit(amount, 'Monthly Plan: ${planTitleController.text}');
 
-    final plan = MonthlyPlan(
-      id: DateTime.now().toIso8601String(),
-      planTitle: planTitleController.text,
-      amountToSpread: amount,
-      numberOfMonths: months,
-      accountNumber: accountNumberController.text,
-      accountName: accountNameController.text,
-      bank: bankNameController.text,
-      monthlyPayment: monthlyPay,
-      preferredDate: selectedDay.value,
-      paymentDates: generateMonthlyPaymentDates(
-        preferredDay: int.parse(selectedDay.value),
+      final plan = MonthlyPlan(
+        id: DateTime.now().toIso8601String(),
+        planTitle: planTitleController.text,
+        amountToSpread: amount,
         numberOfMonths: months,
-      ),
-    );
+        accountNumber: accountNumberController.text,
+        accountName: accountNameController.text,
+        bank: bankNameController.text,
+        monthlyPayment: monthlyPay,
+        preferredDate: selectedDay.value,
+        paymentDates: generateMonthlyPaymentDates(
+          preferredDay: int.parse(selectedDay.value),
+          numberOfMonths: months,
+        ),
+      );
 
-    plans.add(plan);
-    clearForm();
-    Hive.box<MonthlyPlan>('monthly_plans').add(plan);
-    Get.snackbar('Success', 'Monthly plan created successfully');
+      plans.add(plan);
+      clearForm();
+      Hive.box<MonthlyPlan>('monthly_plans').add(plan);
+      Get.snackbar('Success', 'Monthly plan created successfully');
+      Get.offAll(Home());
+    } finally {
+      isCreatingPlan.value = false;
+    }
   }
 
   void clearForm() {
